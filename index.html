@@ -1,0 +1,202 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exact GPS Location</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      font-family: system-ui, sans-serif;
+      color: #f8fafc;
+      background: #080d18;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 440px;
+      padding: 30px;
+      background: #111a2b;
+      border: 1px solid #26354c;
+      border-radius: 24px;
+      box-shadow: 0 24px 80px #0005;
+    }
+
+    .icon {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      background: #193a39;
+      border-radius: 18px;
+      margin-bottom: 20px;
+    }
+
+    h1 { margin: 0 0 10px; font-size: 28px; }
+    p { color: #9baac0; line-height: 1.6; }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      border: 0;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    #locate {
+      color: #06211d;
+      background: #5eead4;
+    }
+
+    #copy {
+      color: #e2e8f0;
+      background: #26354c;
+    }
+
+    button:disabled { opacity: .5; cursor: wait; }
+
+    .result {
+      margin-top: 24px;
+      padding: 18px;
+      background: #0b1220;
+      border-radius: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .label {
+      color: #91a1b8;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 12px;
+    }
+
+    .value {
+      font-size: 18px;
+      font-weight: 650;
+      margin-top: 5px;
+    }
+
+    #status {
+      font-size: 13px;
+      min-height: 20px;
+      margin-top: 16px;
+    }
+
+    a { color: #5eead4; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="icon">⌖</div>
+    <h1>My Exact Location</h1>
+    <p>
+      Click below to request your device's current GPS
+      coordinates. Your browser will ask for permission.
+    </p>
+
+    <button id="locate">📍 Get My Coordinates</button>
+    <div id="status" role="status">Ready to locate your device.</div>
+
+    <section id="result" class="result hidden">
+      <div class="label">Latitude</div>
+      <div class="value" id="lat">—</div>
+
+      <div class="label">Longitude</div>
+      <div class="value" id="lon">—</div>
+
+      <div class="label">Location accuracy</div>
+      <div class="value" id="accuracy">—</div>
+
+      <button id="copy">Copy Coordinates</button>
+      <p>
+        <a id="map" href="#" target="_blank"
+           rel="noopener noreferrer">View on Google Maps ↗</a>
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const locateBtn = document.getElementById("locate");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+
+    let coordinates = null;
+
+    locateBtn.addEventListener("click", () => {
+      if (!("geolocation" in navigator)) {
+        status.textContent =
+          "Geolocation is not supported by this browser.";
+        return;
+      }
+
+      locateBtn.disabled = true;
+      status.textContent = "Requesting your location...";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+
+          coordinates = { latitude, longitude };
+          document.getElementById("lat").textContent =
+            latitude.toFixed(8) + "°";
+          document.getElementById("lon").textContent =
+            longitude.toFixed(8) + "°";
+          document.getElementById("accuracy").textContent =
+            "±" + Math.round(accuracy) + " meters";
+
+          document.getElementById("map").href =
+            `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+          result.classList.remove("hidden");
+          status.textContent = "Location obtained successfully.";
+          locateBtn.disabled = false;
+        },
+        (error) => {
+          const messages = {
+            1: "Permission denied. Allow location access in your browser.",
+            2: "Your location is unavailable. Check GPS and location services.",
+            3: "Location request timed out. Please try again."
+          };
+
+          status.textContent =
+            messages[error.code] || "Unable to retrieve your location.";
+          locateBtn.disabled = false;
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0
+        }
+      );
+    });
+
+    document.getElementById("copy").addEventListener("click", async () => {
+      if (!coordinates) return;
+
+      const text =
+        `${coordinates.latitude}, ${coordinates.longitude}`;
+
+      try {
+        await navigator.clipboard.writeText(text);
+        status.textContent = "Coordinates copied!";
+      } catch {
+        status.textContent =
+          "Copy unavailable. Select and copy the coordinates manually.";
+      }
+    });
+  </script>
+</body>
+</html>
